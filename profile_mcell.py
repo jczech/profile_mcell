@@ -51,9 +51,6 @@ def setup_argparser():
     return parser.parse_args()
 
 
-# def main():
-#     take_mean_of_rxndata(args.directory, args.fileprefix)
-
 def main():
     args = setup_argparser()
     category = args.category
