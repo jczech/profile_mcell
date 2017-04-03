@@ -53,7 +53,7 @@ def build_nutmeg():
     os.chdir("../..")
 
 
-def build_mcell(versions):
+def build_mcell(num_bins):
     bin_dict = {}
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
     os.chdir("mcell")
@@ -63,7 +63,7 @@ def build_mcell(versions):
     shutil.rmtree(build_dir, ignore_errors=True)
     os.mkdir(build_dir)
     os.chdir(build_dir)
-    for i in range(versions):
+    for i in range(num_bins):
         subprocess.call(["make", "clean"])
         subprocess.call(["cmake", ".."])
         subprocess.call(["make"])
@@ -84,19 +84,22 @@ def build_mcell(versions):
 def setup_argparser():
     parser = argparse.ArgumentParser(
         description="How to profile MCell using nutmeg tests:")
-    parser.add_argument("category", help="category for tests")
+    parser.add_argument(
+        "-n", "--num", help="number of versions of MCell to run")
+    parser.add_argument(
+        "-c", "--category", help="category for tests")
     return parser.parse_args()
 
 
 def main():
     args = setup_argparser()
     category = args.category
+    num_bins = int(args.num)
 
     build_nutmeg()
     # This is how many versions of MCell we want to test (starting with master
     # and going back)
-    versions = 3
-    bin_dict = build_mcell(versions)
+    bin_dict = build_mcell(num_bins)
     # bin_dict = {'/home/jacob/profile_mcell/mcell/build/mcell_1': 'd5a8e9031b315c94b332f8323e70648b38a97865', '/home/jacob/profile_mcell/mcell/build/mcell_0': '1130752c89233230cc56379e1d2dc2af819bb7bc'}
 
     os.chdir("nutmeg/tests")
