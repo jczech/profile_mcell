@@ -5,6 +5,7 @@ import os
 import yaml
 import argparse
 import shutil
+import collections
 
 
 def get_mcell_vers(mcell_bin):
@@ -54,7 +55,7 @@ def build_nutmeg():
 
 
 def build_mcell(num_bins, step):
-    bin_dict = {}
+    bin_dict = collections.OrderedDict()
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
     os.chdir("mcell")
     subprocess.call(['git', 'pull'])
