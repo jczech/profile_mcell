@@ -71,7 +71,7 @@ def build_mcell(num_bins, step):
         proc = subprocess.Popen(
             ["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE)
         git_hash = proc.stdout.read().decode('UTF-8')
-        new_mcell_name = "mcell_%d" % i
+        new_mcell_name = "mcell_%s" % git_hash[:8]
         shutil.copy("mcell", new_mcell_name)
         mcell_dir = os.getcwd()
         mcell_bin = os.path.join(mcell_dir, new_mcell_name)
