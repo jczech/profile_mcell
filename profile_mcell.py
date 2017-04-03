@@ -53,21 +53,32 @@ def build_nutmeg():
     os.chdir("../..")
 
 
-def build_mcell():
+def build_mcell(versions):
+    bin_dict = {}
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
     os.chdir("mcell")
     subprocess.call(['git', 'pull'])
+    subprocess.call(['git', 'checkout', 'master'])
     build_dir = "build"
     shutil.rmtree(build_dir, ignore_errors=True)
     os.mkdir(build_dir)
     os.chdir(build_dir)
-    subprocess.call(["cmake", ".."])
-    subprocess.call(["make"])
-    mcell_dir = os.getcwd()
-    mcell_bin = os.path.join(mcell_dir, "mcell")
+    for i in range(versions):
+        subprocess.call(["make", "clean"])
+        subprocess.call(["cmake", ".."])
+        subprocess.call(["make"])
+        proc = subprocess.Popen(
+            ["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE)
+        git_hash = proc.stdout.read().decode('UTF-8')
+        new_mcell_name = "mcell_%d" % i
+        shutil.copy("mcell", new_mcell_name)
+        mcell_dir = os.getcwd()
+        mcell_bin = os.path.join(mcell_dir, new_mcell_name)
+        bin_dict[mcell_bin] = git_hash[:-1]
+        subprocess.call(["git", "checkout", "HEAD~1"])
     os.chdir("../..")
 
-    return mcell_bin
+    return bin_dict
 
 
 def setup_argparser():
@@ -82,29 +93,38 @@ def main():
     category = args.category
 
     build_nutmeg()
-    mcell_bin = build_mcell()
+    # This is how many versions of MCell we want to test (starting with master
+    # and going back)
+    versions = 3
+    bin_dict = build_mcell(versions)
+    # bin_dict = {'/home/jacob/profile_mcell/mcell/build/mcell_1': 'd5a8e9031b315c94b332f8323e70648b38a97865', '/home/jacob/profile_mcell/mcell/build/mcell_0': '1130752c89233230cc56379e1d2dc2af819bb7bc'}
 
-    mdl_times = {}
     os.chdir("nutmeg/tests")
     dirs = os.listdir(os.getcwd())
     dirs.sort()
-    mcell_vers, commit = get_mcell_vers(mcell_bin)
-    all_stuff = {'mcell_vers': mcell_vers, 'commit': commit}
-    for dirn in dirs:
-        if not os.path.isdir(dirn):
-            continue
-        os.chdir(dirn)
-        mdl_name, categories, command_line_opts = parse_test()
-        mdl_dir_fname = "{0}/{1}".format(dirn, mdl_name)
-        if category in categories:
-            elapsed_time = run_mcell(mcell_bin, mdl_name, command_line_opts)
-            mdl_times[mdl_dir_fname] = elapsed_time
-        os.chdir("..")
-    total_time = sum([mdl_times[k] for k in mdl_times])
-    all_stuff['mdl_times'] = mdl_times
-    all_stuff['total_time'] = total_time
+    run_info_list = []
+    for mcell_bin in bin_dict:
+        mdl_times = {}
+        run_info = {}
+        for dirn in dirs:
+            if not os.path.isdir(dirn):
+                continue
+            os.chdir(dirn)
+            mdl_name, categories, command_line_opts = parse_test()
+            mdl_dir_fname = "{0}/{1}".format(dirn, mdl_name)
+            if category in categories:
+                elapsed_time = run_mcell(mcell_bin, mdl_name, command_line_opts)
+                mdl_times[mdl_dir_fname] = elapsed_time
+            os.chdir("..")
+        total_time = sum([mdl_times[k] for k in mdl_times])
+        run_info[mcell_bin] = bin_dict[mcell_bin]
+        run_info['mdl_times'] = mdl_times
+        run_info['total_time'] = total_time
+        run_info_list.append(run_info)
     with open("mdl_times.yml", 'w') as mdl_times_f:
-        mdl_times_f.write(yaml.dump(all_stuff, default_flow_style=False))
+        yml_dump = yaml.dump(
+            run_info_list, allow_unicode=True, default_flow_style=False)
+        mdl_times_f.write(yml_dump)
 
 
 if __name__ == "__main__":
