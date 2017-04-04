@@ -88,14 +88,15 @@ def setup_argparser():
     parser = argparse.ArgumentParser(
         description="How to profile MCell using nutmeg tests:")
     parser.add_argument(
-        "-n", "--num",
+        "-n", "--num", default=1,
         help="number of versions of MCell to run from git repo")
     parser.add_argument(
-        "-s", "--step", help="number of steps between MCell versions")
+        "-s", "--step",  default=1,
+        help="number of steps between MCell versions")
     parser.add_argument(
         "-c", "--category", help="category for tests")
     parser.add_argument(
-        "-b", "--branch", help="category for tests", default="master")
+        "-b", "--branch", help="git branch", default="master")
     return parser.parse_args()
 
 
