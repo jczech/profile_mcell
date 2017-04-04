@@ -8,6 +8,7 @@ import yaml
 import argparse
 import shutil
 import collections
+import pandas
 
 
 def get_mcell_vers(mcell_bin):
@@ -141,6 +142,8 @@ def main():
         yml_dump = yaml.dump(
             run_info_list, allow_unicode=True, default_flow_style=False)
         mdl_times_f.write(yml_dump)
+    times_df = pandas.DataFrame([i['total_time'] for i in run_info_list])
+    times_df.plot().get_figure().savefig("output.png")
 
 
 if __name__ == "__main__":
