@@ -9,6 +9,7 @@ import argparse
 import shutil
 import collections
 import pandas
+import seaborn
 
 
 def get_mcell_vers(mcell_bin):
@@ -134,7 +135,7 @@ def main():
                 mdl_times[mdl_dir_fname] = elapsed_time
             os.chdir("..")
         total_time = sum([mdl_times[k] for k in mdl_times])
-        run_info[mcell_bin] = bin_dict[mcell_bin]
+        run_info['mcell_bin'] = bin_dict[mcell_bin]
         run_info['mdl_times'] = mdl_times
         run_info['total_time'] = total_time
         run_info_list.append(run_info)
@@ -142,8 +143,16 @@ def main():
         yml_dump = yaml.dump(
             run_info_list, allow_unicode=True, default_flow_style=False)
         mdl_times_f.write(yml_dump)
-    times_df = pandas.DataFrame([i['total_time'] for i in run_info_list])
-    times_df.plot().get_figure().savefig("output.png")
+    times_df = pandas.DataFrame(
+        data=[(i['mcell_bin'][:8], i['total_time']) for i in run_info_list],
+        columns=["binary", "time"])
+    times_df = times_df.set_index("binary")
+    ax = times_df.plot(
+        title="Running Times for MCell Binaries", legend=False, kind="bar",
+        rot=0)
+    ax.set_ylabel("Time (s)")
+    ax.set_xlabel("Git SHA ID")
+    ax.get_figure().savefig("output.png")
 
 
 if __name__ == "__main__":
