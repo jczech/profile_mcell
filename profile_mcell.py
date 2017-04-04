@@ -42,6 +42,7 @@ def run_mcell(mcell_bin, mdl_name, command_line_opts):
     seed = random.randint(1, 2147483647)
     command = [mcell_bin, '-seed', '%d' % seed, mdl_name]
     command.extend(command_line_opts)
+    print(" ".join(command))
     start = time.time()
     subprocess.call(
         command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -86,6 +87,19 @@ def build_mcell(num_bins, step, branch):
     os.chdir("../..")
 
     return bin_dict
+
+
+def plot_times(run_info_list):
+    times_df = pandas.DataFrame(
+        data=[(i['mcell_bin'][:8], i['total_time']) for i in run_info_list],
+        columns=["binary", "time"])
+    times_df = times_df.set_index("binary")
+    ax = times_df.plot(
+        title="Running Times for MCell Binaries", legend=False, kind="bar",
+        rot=0)
+    ax.set_ylabel("Time (s)")
+    ax.set_xlabel("Git SHA ID")
+    ax.get_figure().savefig("output.png")
 
 
 def setup_argparser():
@@ -139,20 +153,12 @@ def main():
         run_info['mdl_times'] = mdl_times
         run_info['total_time'] = total_time
         run_info_list.append(run_info)
+    os.chdir("../..")
     with open("mdl_times.yml", 'w') as mdl_times_f:
         yml_dump = yaml.dump(
             run_info_list, allow_unicode=True, default_flow_style=False)
         mdl_times_f.write(yml_dump)
-    times_df = pandas.DataFrame(
-        data=[(i['mcell_bin'][:8], i['total_time']) for i in run_info_list],
-        columns=["binary", "time"])
-    times_df = times_df.set_index("binary")
-    ax = times_df.plot(
-        title="Running Times for MCell Binaries", legend=False, kind="bar",
-        rot=0)
-    ax.set_ylabel("Time (s)")
-    ax.set_xlabel("Git SHA ID")
-    ax.get_figure().savefig("output.png")
+    plot_times(run_info_list)
 
 
 if __name__ == "__main__":
