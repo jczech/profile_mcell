@@ -61,20 +61,22 @@ def build_mcell(num_bins, step):
     subprocess.call(['git', 'pull'])
     subprocess.call(['git', 'checkout', 'master'])
     build_dir = "build"
-    shutil.rmtree(build_dir, ignore_errors=True)
-    os.mkdir(build_dir)
+    # shutil.rmtree(build_dir, ignore_errors=True)
+    if not os.path.exists(build_dir):
+        os.mkdir(build_dir)
     os.chdir(build_dir)
     for i in range(num_bins):
-        subprocess.call(["make", "clean"])
-        subprocess.call(["cmake", ".."])
-        subprocess.call(["make"])
+        # Only build if we need to. Use existing versions if it exists.
         proc = subprocess.Popen(
             ["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE)
         git_hash = proc.stdout.read().decode('UTF-8')
         new_mcell_name = "mcell_%s" % git_hash[:8]
-        shutil.copy("mcell", new_mcell_name)
-        mcell_dir = os.getcwd()
-        mcell_bin = os.path.join(mcell_dir, new_mcell_name)
+        if not os.path.exists(new_mcell_name):
+            subprocess.call(["make", "clean"])
+            subprocess.call(["cmake", ".."])
+            subprocess.call(["make"])
+            shutil.copy("mcell", new_mcell_name)
+        mcell_bin = os.path.join(os.getcwd(), new_mcell_name)
         bin_dict[mcell_bin] = git_hash[:-1]
         subprocess.call(["git", "checkout", "HEAD~%d" % step])
     os.chdir("../..")
