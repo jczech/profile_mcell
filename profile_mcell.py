@@ -9,7 +9,6 @@ import argparse
 import shutil
 import collections
 import pandas
-import seaborn
 
 
 def get_mcell_vers(mcell_bin):
@@ -25,6 +24,7 @@ def parse_test():
     mdl_name = ""
     categories = []
     command_line_opts = []
+    skip = True
     with open("./test_description.toml", 'r') as toml_f:
         for line in toml_f.readlines():
             words = line.split()
@@ -35,7 +35,10 @@ def parse_test():
                 categories = eval(line.split("=")[1])
             elif words and words[0].startswith("commandlineOpts"):
                 command_line_opts = eval(line.split("=")[1])
-    return (mdl_name, categories, command_line_opts)
+            elif (words and words[0].startswith("testType") and
+                  words[2].startswith('"CHECK_SUCCESS"')):
+                skip = False
+    return (mdl_name, categories, command_line_opts, skip)
 
 
 def run_mcell(mcell_bin, mdl_name, command_line_opts):
@@ -44,10 +47,15 @@ def run_mcell(mcell_bin, mdl_name, command_line_opts):
     command.extend(command_line_opts)
     print(" ".join(command))
     start = time.time()
-    subprocess.call(
-        command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(
+        command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     end = time.time()
-    elapsed_time = end-start
+    err_str = proc.stderr.read().decode('UTF-8')
+    err_list = err_str.split("\n")
+    if [e for e in err_list if e.startswith("Error") or e.startswith("Fatal")]:
+        elapsed_time = None
+    else:
+        elapsed_time = end-start
     return elapsed_time
 
 
@@ -142,13 +150,20 @@ def main():
             if not os.path.isdir(dirn):
                 continue
             os.chdir(dirn)
-            mdl_name, categories, command_line_opts = parse_test()
+            mdl_name, categories, command_line_opts, skip = parse_test()
+            if skip:
+                os.chdir("..")
+                continue
             mdl_dir_fname = "{0}/{1}".format(dirn, mdl_name)
             if category in categories:
                 elapsed_time = run_mcell(mcell_bin, mdl_name, command_line_opts)
                 mdl_times[mdl_dir_fname] = elapsed_time
             os.chdir("..")
-        total_time = sum([mdl_times[k] for k in mdl_times])
+        total_time_list = [mdl_times[k] for k in mdl_times]
+        if None in total_time_list:
+            total_time = None
+        else:
+            total_time = sum(total_time_list)
         run_info['mcell_bin'] = bin_dict[mcell_bin]
         run_info['mdl_times'] = mdl_times
         run_info['total_time'] = total_time
