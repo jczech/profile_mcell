@@ -110,6 +110,13 @@ def plot_times(run_info_list):
     ax.get_figure().savefig("output.png")
 
 
+def clean_builds():
+    os.chdir("mcell")
+    build_dir = "build"
+    if os.path.exists(build_dir):
+        shutil.rmtree(build_dir, ignore_errors=True)
+
+
 def setup_argparser():
     parser = argparse.ArgumentParser(
         description="How to profile MCell using nutmeg tests:")
@@ -123,6 +130,8 @@ def setup_argparser():
         "-c", "--category", help="category for tests")
     parser.add_argument(
         "-b", "--branch", help="git branch", default="master")
+    parser.add_argument(
+        "-C", "--clean", action="store_true", help="clean old MCell builds")
     return parser.parse_args()
 
 
@@ -132,6 +141,10 @@ def main():
     num_bins = int(args.num)
     step = int(args.step)
     branch = args.branch
+    clean = args.clean
+
+    if clean:
+        clean_builds()
 
     build_nutmeg()
     # This is how many versions of MCell we want to test (starting with master
