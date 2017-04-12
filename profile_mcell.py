@@ -67,6 +67,13 @@ def build_nutmeg():
     os.chdir("../..")
 
 
+def list_nutmeg_categories():
+    os.chdir("nutmeg")
+    command = ["./nutmeg", "-L"]
+    proc = subprocess.Popen(command)
+    os.chdir("..")
+
+
 def build_mcell(num_bins, step, branch):
     bin_dict = collections.OrderedDict()
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
@@ -117,43 +124,7 @@ def clean_builds():
     os.chdir("..")
 
 
-def setup_argparser():
-    parser = argparse.ArgumentParser(
-        description="How to profile MCell using nutmeg tests:")
-    parser.add_argument(
-        "-n", "--num", default=1,
-        help="number of versions of MCell to run from git repo")
-    parser.add_argument(
-        "-s", "--step",  default=1,
-        help="number of steps between MCell versions")
-    parser.add_argument(
-        "-c", "--category", help="category for tests")
-    parser.add_argument(
-        "-b", "--branch", help="git branch", default="master")
-    parser.add_argument(
-        "-C", "--clean", action="store_true", help="clean old MCell builds")
-    return parser.parse_args()
-
-
-def main():
-    args = setup_argparser()
-    category = args.category
-    num_bins = int(args.num)
-    step = int(args.step)
-    branch = args.branch
-    clean = args.clean
-
-    if clean:
-        clean_builds()
-
-    build_nutmeg()
-    # This is how many versions of MCell we want to test (starting with master
-    # and going back)
-    bin_dict = build_mcell(num_bins, step, branch)
-
-    os.chdir("nutmeg/tests")
-    dirs = os.listdir(os.getcwd())
-    dirs.sort()
+def run_tests(bin_dict, dirs, category):
     run_info_list = []
     for mcell_bin in bin_dict:
         mdl_times = {}
@@ -181,12 +152,58 @@ def main():
         run_info['mdl_times'] = mdl_times
         run_info['total_time'] = total_time
         run_info_list.append(run_info)
-    os.chdir("../..")
-    with open("mdl_times.yml", 'w') as mdl_times_f:
-        yml_dump = yaml.dump(
-            run_info_list, allow_unicode=True, default_flow_style=False)
-        mdl_times_f.write(yml_dump)
-    plot_times(run_info_list)
+    return run_info_list
+
+
+def setup_argparser():
+    parser = argparse.ArgumentParser(
+        description="How to profile MCell using nutmeg tests:")
+    parser.add_argument(
+        "-n", "--num", default=1,
+        help="number of versions of MCell to run from git repo")
+    parser.add_argument(
+        "-s", "--step",  default=1,
+        help="number of steps between MCell versions")
+    parser.add_argument(
+        "-c", "--category", help="category for tests")
+    parser.add_argument(
+        "-b", "--branch", help="git branch", default="master")
+    parser.add_argument(
+        "-C", "--clean", action="store_true", help="clean old MCell builds")
+    parser.add_argument(
+        "-l", "--list_categories", action="store_true", help="list nutmeg categories")
+    return parser.parse_args()
+
+
+def main():
+    args = setup_argparser()
+    category = args.category
+    num_bins = int(args.num)
+    step = int(args.step)
+    branch = args.branch
+
+    if args.clean:
+        clean_builds()
+
+    if args.list_categories:
+        list_nutmeg_categories()
+    else:
+        build_nutmeg()
+        # This is how many versions of MCell we want to test (starting with master
+        # and going back)
+        bin_dict = build_mcell(num_bins, step, branch)
+
+        os.chdir("nutmeg/tests")
+        dirs = os.listdir(os.getcwd())
+        dirs.sort()
+        # run_info_list = []
+        run_info_list = run_tests(bin_dict, dirs, category)
+        os.chdir("../..")
+        with open("mdl_times.yml", 'w') as mdl_times_f:
+            yml_dump = yaml.dump(
+                run_info_list, allow_unicode=True, default_flow_style=False)
+            mdl_times_f.write(yml_dump)
+        plot_times(run_info_list)
 
 
 if __name__ == "__main__":
