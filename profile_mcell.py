@@ -98,6 +98,7 @@ def build_mcell(num_bins, step, branch, proj_dir):
         mcell_bin = os.path.join(os.getcwd(), new_mcell_name)
         bin_dict[mcell_bin] = git_hash[:-1]
         subprocess.call(["git", "checkout", "HEAD~%d" % step])
+    subprocess.call(['git', 'checkout', branch])
     os.chdir(proj_dir)
 
     return bin_dict
@@ -170,6 +171,7 @@ def run_tests(bin_dict, dirs, selected_categories, proj_dir):
         run_info['mdl_times'] = mdl_times
         run_info['total_time'] = mdl_total_times
         run_info_list.append(run_info)
+    os.chdir(proj_dir)
     return run_info_list
 
 
@@ -214,7 +216,7 @@ def main():
         bin_dict = build_mcell(num_bins, step, branch, proj_dir)
 
         os.chdir("nutmeg/tests")
-        dirs = os.listdir(proj_dir)
+        dirs = os.listdir(os.getcwd())
         dirs.sort()
         run_info_list = run_tests(bin_dict, dirs, categories, proj_dir)
         with open("mdl_times.yml", 'w') as mdl_times_f:
