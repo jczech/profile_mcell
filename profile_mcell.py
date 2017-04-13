@@ -59,22 +59,22 @@ def run_mcell(mcell_bin, mdl_name, command_line_opts):
     return elapsed_time
 
 
-def build_nutmeg():
+def build_nutmeg(proj_dir):
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/nutmeg'])
     os.chdir("nutmeg")
     subprocess.call(['git', 'pull'])
     os.chdir("tests")
-    os.chdir("../..")
+    os.chdir(proj_dir)
 
 
-def list_nutmeg_categories():
+def list_nutmeg_categories(proj_dir):
     os.chdir("nutmeg")
     command = ["./nutmeg", "-L"]
     subprocess.Popen(command)
-    os.chdir("..")
+    os.chdir(proj_dir)
 
 
-def build_mcell(num_bins, step, branch):
+def build_mcell(num_bins, step, branch, proj_dir):
     bin_dict = collections.OrderedDict()
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
     os.chdir("mcell")
@@ -98,7 +98,7 @@ def build_mcell(num_bins, step, branch):
         mcell_bin = os.path.join(os.getcwd(), new_mcell_name)
         bin_dict[mcell_bin] = git_hash[:-1]
         subprocess.call(["git", "checkout", "HEAD~%d" % step])
-    os.chdir("../..")
+    os.chdir(proj_dir)
 
     return bin_dict
 
@@ -133,7 +133,7 @@ def clean_builds():
     os.chdir("..")
 
 
-def run_tests(bin_dict, dirs, selected_categories):
+def run_tests(bin_dict, dirs, selected_categories, proj_dir):
     run_info_list = []
     for mcell_bin in bin_dict:
         mdl_times = {}
@@ -183,7 +183,7 @@ def setup_argparser():
         "-s", "--step",  default=1,
         help="number of steps between MCell versions")
     parser.add_argument(
-        "-c", "--categories", action="append", help="category for tests")
+        "-c", "--categories", action="append", help="categories for tests")
     parser.add_argument(
         "-b", "--branch", help="git branch", default="master")
     parser.add_argument(
@@ -200,6 +200,7 @@ def main():
     num_bins = int(args.num)
     step = int(args.step)
     branch = args.branch
+    proj_dir = os.getcwd()
 
     if args.clean:
         clean_builds()
@@ -207,16 +208,15 @@ def main():
     if args.list_categories:
         list_nutmeg_categories()
     else:
-        build_nutmeg()
+        build_nutmeg(proj_dir)
         # This is how many versions of MCell we want to test (starting with
         # HEAD and going back)
-        bin_dict = build_mcell(num_bins, step, branch)
+        bin_dict = build_mcell(num_bins, step, branch, proj_dir)
 
         os.chdir("nutmeg/tests")
-        dirs = os.listdir(os.getcwd())
+        dirs = os.listdir(proj_dir)
         dirs.sort()
-        run_info_list = run_tests(bin_dict, dirs, categories)
-        os.chdir("../..")
+        run_info_list = run_tests(bin_dict, dirs, categories, proj_dir)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
