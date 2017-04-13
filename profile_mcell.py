@@ -70,7 +70,7 @@ def build_nutmeg():
 def list_nutmeg_categories():
     os.chdir("nutmeg")
     command = ["./nutmeg", "-L"]
-    proc = subprocess.Popen(command)
+    subprocess.Popen(command)
     os.chdir("..")
 
 
@@ -111,10 +111,10 @@ def plot_times(run_info_list, categories):
         for key in run['total_time']:
             curr_run.append(run['total_time'][key])
         total_run_list.append(curr_run)
-    
+
     column_list = ['binary']
     column_list.extend(categories)
-    times_df = pandas.DataFrame(data=total_run_list, columns = column_list)
+    times_df = pandas.DataFrame(data=total_run_list, columns=column_list)
 
     times_df = times_df.set_index("binary")
     ax = times_df.plot(
@@ -153,11 +153,13 @@ def run_tests(bin_dict, dirs, selected_categories):
             mdl_dir_fname = "{0}/{1}".format(dirn, mdl_name)
             for category in selected_categories:
                 if category in categories:
-                    elapsed_time = run_mcell(mcell_bin, mdl_name, command_line_opts)
+                    elapsed_time = run_mcell(
+                        mcell_bin, mdl_name, command_line_opts)
                     mdl_times[category][mdl_dir_fname] = elapsed_time
             os.chdir("..")
         for category in selected_categories:
-            total_time_list = [mdl_times[category][k] for k in mdl_times[category]]
+            total_time_list = [
+                mdl_times[category][k] for k in mdl_times[category]]
             if None in total_time_list:
                 print("Commit %s has failures." % bin_dict[mcell_bin])
                 break
@@ -187,7 +189,8 @@ def setup_argparser():
     parser.add_argument(
         "-C", "--clean", action="store_true", help="clean old MCell builds")
     parser.add_argument(
-        "-l", "--list_categories", action="store_true", help="list nutmeg categories")
+        "-l", "--list_categories", action="store_true",
+        help="list nutmeg categories")
     return parser.parse_args()
 
 
@@ -205,8 +208,8 @@ def main():
         list_nutmeg_categories()
     else:
         build_nutmeg()
-        # This is how many versions of MCell we want to test (starting with master
-        # and going back)
+        # This is how many versions of MCell we want to test (starting with
+        # HEAD and going back)
         bin_dict = build_mcell(num_bins, step, branch)
 
         os.chdir("nutmeg/tests")
