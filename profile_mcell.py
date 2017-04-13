@@ -49,8 +49,8 @@ def run_mcell(mcell_bin, mdl_name, command_line_opts):
     start = time.time()
     proc = subprocess.Popen(
         command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-    end = time.time()
     err_str = proc.stderr.read().decode('UTF-8')
+    end = time.time()
     err_list = err_str.split("\n")
     if [e for e in err_list if e.startswith("Error") or e.startswith("Fatal")]:
         elapsed_time = None
