@@ -103,13 +103,22 @@ def build_mcell(num_bins, step, branch):
     return bin_dict
 
 
-def plot_times(run_info_list):
-    times_df = pandas.DataFrame(
-        data=[(i['mcell_bin'][:8], i['total_time']) for i in run_info_list],
-        columns=["binary", "time"])
+def plot_times(run_info_list, categories):
+    total_run_list = []
+    for run in run_info_list:
+        binary = run['mcell_bin'][:8]
+        curr_run = [binary]
+        for key in run['total_time']:
+            curr_run.append(run['total_time'][key])
+        total_run_list.append(curr_run)
+    
+    column_list = ['binary']
+    column_list.extend(categories)
+    times_df = pandas.DataFrame(data=total_run_list, columns = column_list)
+
     times_df = times_df.set_index("binary")
     ax = times_df.plot(
-        title="Running Times for MCell Binaries", legend=False, kind="bar",
+        title="Running Times for MCell Binaries", kind="bar",
         rot=0)
     ax.set_ylabel("Time (s)")
     ax.set_xlabel("Git SHA ID")
@@ -124,10 +133,14 @@ def clean_builds():
     os.chdir("..")
 
 
-def run_tests(bin_dict, dirs, category):
+def run_tests(bin_dict, dirs, selected_categories):
     run_info_list = []
     for mcell_bin in bin_dict:
         mdl_times = {}
+        mdl_total_times = {}
+        for category in selected_categories:
+            mdl_total_times[category] = {}
+            mdl_times[category] = {}
         run_info = {}
         for dirn in dirs:
             if not os.path.isdir(dirn):
@@ -138,19 +151,22 @@ def run_tests(bin_dict, dirs, category):
                 os.chdir("..")
                 continue
             mdl_dir_fname = "{0}/{1}".format(dirn, mdl_name)
-            if category in categories:
-                elapsed_time = run_mcell(mcell_bin, mdl_name, command_line_opts)
-                mdl_times[mdl_dir_fname] = elapsed_time
+            for category in selected_categories:
+                if category in categories:
+                    elapsed_time = run_mcell(mcell_bin, mdl_name, command_line_opts)
+                    mdl_times[category][mdl_dir_fname] = elapsed_time
             os.chdir("..")
-        total_time_list = [mdl_times[k] for k in mdl_times]
-        if None in total_time_list:
-            print("Commit %s has failures." % bin_dict[mcell_bin])
-            break
-        else:
-            total_time = sum(total_time_list)
+        for category in selected_categories:
+            total_time_list = [mdl_times[category][k] for k in mdl_times[category]]
+            if None in total_time_list:
+                print("Commit %s has failures." % bin_dict[mcell_bin])
+                break
+            else:
+                total_time = sum(total_time_list)
+            mdl_total_times[category] = total_time
         run_info['mcell_bin'] = bin_dict[mcell_bin]
         run_info['mdl_times'] = mdl_times
-        run_info['total_time'] = total_time
+        run_info['total_time'] = mdl_total_times
         run_info_list.append(run_info)
     return run_info_list
 
@@ -165,7 +181,7 @@ def setup_argparser():
         "-s", "--step",  default=1,
         help="number of steps between MCell versions")
     parser.add_argument(
-        "-c", "--category", help="category for tests")
+        "-c", "--categories", action="append", help="category for tests")
     parser.add_argument(
         "-b", "--branch", help="git branch", default="master")
     parser.add_argument(
@@ -177,7 +193,7 @@ def setup_argparser():
 
 def main():
     args = setup_argparser()
-    category = args.category
+    categories = args.categories
     num_bins = int(args.num)
     step = int(args.step)
     branch = args.branch
@@ -196,14 +212,13 @@ def main():
         os.chdir("nutmeg/tests")
         dirs = os.listdir(os.getcwd())
         dirs.sort()
-        # run_info_list = []
-        run_info_list = run_tests(bin_dict, dirs, category)
+        run_info_list = run_tests(bin_dict, dirs, categories)
         os.chdir("../..")
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
             mdl_times_f.write(yml_dump)
-        plot_times(run_info_list)
+        plot_times(run_info_list, categories)
 
 
 if __name__ == "__main__":
