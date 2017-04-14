@@ -132,7 +132,7 @@ def plot_times(
     for run in run_info_list:
         commit = run['commit'][:8]
         curr_run = [commit]
-        for key in run['total_time']:
+        for key in categories:
             curr_run.append(run['total_time'][key])
         total_run_list.append(curr_run)
 
