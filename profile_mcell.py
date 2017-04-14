@@ -42,6 +42,7 @@ def parse_test():
 
 
 def run_mcell(mcell_bin, mdl_name, command_line_opts):
+    print(os.getcwd())
     seed = random.randint(1, 2147483647)
     command = [mcell_bin, '-seed', '%d' % seed, mdl_name]
     command.extend(command_line_opts)
@@ -63,7 +64,14 @@ def build_nutmeg(proj_dir):
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/nutmeg'])
     os.chdir("nutmeg")
     subprocess.call(['git', 'pull'])
-    os.chdir("tests")
+    subprocess.call(['go', 'build'])
+    if not os.path.exists("nutmeg.conf"):
+        with open("nutmeg.conf", 'w') as nutmeg_f:
+            mcell_path = shutil.which("mcell")
+            cwd = os.getcwd()
+            nutmeg_f.write('testDir = "%s/tests"\n' % cwd)
+            nutmeg_f.write('includeDir = "%s/toml_includes"\n' % cwd)
+            nutmeg_f.write('mcellPath = "%s"\n' % mcell_path)
     os.chdir(proj_dir)
 
 
@@ -134,7 +142,10 @@ def clean_builds():
     os.chdir("..")
 
 
-def run_tests(bin_dict, dirs, selected_categories, proj_dir):
+def run_nutmeg_tests(bin_dict, selected_categories, proj_dir):
+    os.chdir("nutmeg/tests")
+    dirs = os.listdir(os.getcwd())
+    dirs.sort()
     run_info_list = []
     for mcell_bin in bin_dict:
         mdl_times = {}
@@ -196,6 +207,31 @@ def setup_argparser():
     return parser.parse_args()
 
 
+def get_az_models(mouse_dir, frog_dir):
+    subprocess.call(
+        ['git', 'clone', 'https://github.com/jczech/%s' % mouse_dir])
+    os.chdir(mouse_dir)
+    subprocess.call(['git', 'pull'])
+    os.chdir("..")
+
+    subprocess.call(
+        ['git', 'clone', 'https://github.com/jczech/%s' % frog_dir])
+    os.chdir(frog_dir)
+    subprocess.call(['git', 'pull'])
+    os.chdir("..")
+
+
+def run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir):
+    cmd_args = ['-q', '-i', '100']
+    os.chdir("%s/mdls" % mouse_dir)
+    run_mcell("mcell", "main.mdl", cmd_args)
+    os.chdir(proj_dir)
+
+    os.chdir("%s/mdls" % frog_dir)
+    run_mcell("mcell", "main.mdl", cmd_args)
+    os.chdir(proj_dir)
+
+
 def main():
     args = setup_argparser()
     categories = args.categories
@@ -207,18 +243,23 @@ def main():
     if args.clean:
         clean_builds()
 
+    os.chdir(proj_dir)
+    build_nutmeg(proj_dir)
     if args.list_categories:
-        list_nutmeg_categories()
+        os.chdir(proj_dir)
+        list_nutmeg_categories(proj_dir)
     else:
-        build_nutmeg(proj_dir)
         # This is how many versions of MCell we want to test (starting with
         # HEAD and going back)
         bin_dict = build_mcell(num_bins, step, branch, proj_dir)
 
-        os.chdir("nutmeg/tests")
-        dirs = os.listdir(os.getcwd())
-        dirs.sort()
-        run_info_list = run_tests(bin_dict, dirs, categories, proj_dir)
+        nutmeg_cats = [cat for cat in categories if cat != "az"]
+        run_info_list = run_nutmeg_tests(bin_dict, categories, proj_dir)
+        if 'az' in categories:
+            mouse_dir = 'mouse_model_4p_50hz'
+            frog_dir = 'frog_model_5p_100hz'
+            get_az_models(mouse_dir, frog_dir)
+            run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
