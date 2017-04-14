@@ -21,6 +21,9 @@ def get_mcell_vers(mcell_bin):
 
 
 def parse_test() -> Tuple[str, List[str], List[str], bool]:
+    """ Parse all the nutmeg tests.
+    Grab the MDL file names, categories, and command line options.
+    """
     mdl_name = ""
     categories = [] # type: List
     command_line_opts = [] # type: List
@@ -42,6 +45,9 @@ def parse_test() -> Tuple[str, List[str], List[str], bool]:
 
 
 def run_mcell(mcell_bin: str, mdl_name: str, command_line_opts: List[str]) -> float:
+    """ Run MCell and return the time it takes to complete.
+    This runs the selected MCell binary on a single model.
+    """
     seed = random.randint(1, 2147483647)
     command = [mcell_bin, '-seed', '%d' % seed, mdl_name]
     command.extend(command_line_opts)
@@ -61,6 +67,7 @@ def run_mcell(mcell_bin: str, mdl_name: str, command_line_opts: List[str]) -> fl
 
 
 def build_nutmeg(proj_dir: str) -> None:
+    """ Clone and build nutmeg. """
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/nutmeg'])
     os.chdir("nutmeg")
     subprocess.call(['git', 'pull'])
@@ -76,6 +83,9 @@ def build_nutmeg(proj_dir: str) -> None:
 
 
 def list_nutmeg_categories(proj_dir: str) -> None:
+    """ List all the nutmeg categories.
+    This includes things like releases, leak, reactions, etc
+    """
     os.chdir("nutmeg")
     command = ["./nutmeg", "-L"]
     subprocess.Popen(command)
@@ -84,6 +94,7 @@ def list_nutmeg_categories(proj_dir: str) -> None:
 
 def build_mcell(
         num_bins: int, step: int, branch: str, proj_dir: str) -> OrderedDict:
+    """ Clone and build all the requested versions of MCell. """
     bin_dict = OrderedDict() # type: OrderedDict
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
     os.chdir("mcell")
@@ -116,6 +127,7 @@ def build_mcell(
 def plot_times(
         run_info_list: List[Dict[str, Any]],
         categories: List[str]) -> None:
+    """ Plot the times required to run the all the simulations. """
     total_run_list = []
     for run in run_info_list:
         commit = run['commit'][:8]
@@ -138,6 +150,7 @@ def plot_times(
 
 
 def clean_builds() -> None:
+    """ Clean out all the MCell binaries. """
     os.chdir("mcell")
     build_dir = "build"
     if os.path.exists(build_dir):
@@ -149,6 +162,8 @@ def run_nutmeg_tests(
         bin_dict: OrderedDict,
         selected_categories: List[str],
         proj_dir: str) -> List[Dict[str, Any]]:
+    """ Run all the requested nutmeg tests (according to category).
+    Use all of the built versions of MCell. """
     os.chdir("nutmeg/tests")
     dirs = os.listdir(os.getcwd())
     dirs.sort()
@@ -215,6 +230,7 @@ def setup_argparser():
 
 
 def get_az_models(mouse_dir: str, frog_dir: str) -> None:
+    """ Clone all the active zone models. """
     subprocess.call(
         ['git', 'clone', 'https://github.com/jczech/%s' % mouse_dir])
     os.chdir(mouse_dir)
@@ -234,6 +250,8 @@ def run_az_tests(
         bin_dict: OrderedDict,
         proj_dir: str,
         run_info_list: List[Dict[str, Any]]) -> None:
+    """ Run MCell on all the active zone tests using every select MCell binary.
+    """
     cmd_args = ['-q', '-i', '10']
     for idx, mcell_bin in enumerate(bin_dict):
         mdl_times = {}
