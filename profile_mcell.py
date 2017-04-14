@@ -9,7 +9,7 @@ import argparse
 import shutil
 import pandas
 from collections import OrderedDict
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
 
 def get_mcell_vers(mcell_bin):
     proc = subprocess.Popen([mcell_bin], stdout=subprocess.PIPE)
@@ -20,7 +20,7 @@ def get_mcell_vers(mcell_bin):
     return (vers, commit)
 
 
-def parse_test() -> Tuple[str, List, List, bool]:
+def parse_test() -> Tuple[str, List[str], List[str], bool]:
     mdl_name = ""
     categories = [] # type: List
     command_line_opts = [] # type: List
@@ -41,7 +41,7 @@ def parse_test() -> Tuple[str, List, List, bool]:
     return (mdl_name, categories, command_line_opts, skip)
 
 
-def run_mcell(mcell_bin: str, mdl_name: str, command_line_opts: List) -> float:
+def run_mcell(mcell_bin: str, mdl_name: str, command_line_opts: List[str]) -> float:
     seed = random.randint(1, 2147483647)
     command = [mcell_bin, '-seed', '%d' % seed, mdl_name]
     command.extend(command_line_opts)
@@ -113,7 +113,9 @@ def build_mcell(
     return bin_dict
 
 
-def plot_times(run_info_list: List, categories: List) -> None:
+def plot_times(
+        run_info_list: List[Dict[str, Any]],
+        categories: List[str]) -> None:
     total_run_list = []
     for run in run_info_list:
         commit = run['commit'][:8]
@@ -144,7 +146,9 @@ def clean_builds() -> None:
 
 
 def run_nutmeg_tests(
-        bin_dict: OrderedDict, selected_categories: List, proj_dir: str):
+        bin_dict: OrderedDict,
+        selected_categories: List[str],
+        proj_dir: str) -> List[Dict[str, Any]]:
     os.chdir("nutmeg/tests")
     dirs = os.listdir(os.getcwd())
     dirs.sort()
@@ -210,7 +214,7 @@ def setup_argparser():
     return parser.parse_args()
 
 
-def get_az_models(mouse_dir: str, frog_dir: str):
+def get_az_models(mouse_dir: str, frog_dir: str) -> None:
     subprocess.call(
         ['git', 'clone', 'https://github.com/jczech/%s' % mouse_dir])
     os.chdir(mouse_dir)
@@ -229,7 +233,7 @@ def run_az_tests(
         frog_dir: str,
         bin_dict: OrderedDict,
         proj_dir: str,
-        run_info_list: List):
+        run_info_list: List[Dict[str, Any]]) -> None:
     cmd_args = ['-q', '-i', '10']
     for idx, mcell_bin in enumerate(bin_dict):
         mdl_times = {}
@@ -249,7 +253,6 @@ def run_az_tests(
         run_info_list[idx]['total_time']['az'] = total_time
 
     os.chdir(proj_dir)
-    return run_info_list
 
 
 def main():
@@ -279,7 +282,7 @@ def main():
             mouse_dir = 'mouse_model_4p_50hz'
             frog_dir = 'frog_model_5p_100hz'
             get_az_models(mouse_dir, frog_dir)
-            run_info_list = run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir, run_info_list)
+            run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir, run_info_list)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
