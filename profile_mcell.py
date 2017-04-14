@@ -7,9 +7,9 @@ import os
 import yaml
 import argparse
 import shutil
-import collections
 import pandas
-
+from collections import OrderedDict
+from typing import List, Dict, Tuple
 
 def get_mcell_vers(mcell_bin):
     proc = subprocess.Popen([mcell_bin], stdout=subprocess.PIPE)
@@ -20,10 +20,10 @@ def get_mcell_vers(mcell_bin):
     return (vers, commit)
 
 
-def parse_test():
+def parse_test() -> Tuple[str, List, List, bool]:
     mdl_name = ""
-    categories = []
-    command_line_opts = []
+    categories = [] # type: List
+    command_line_opts = [] # type: List
     skip = True
     with open("./test_description.toml", 'r') as toml_f:
         for line in toml_f.readlines():
@@ -41,10 +41,11 @@ def parse_test():
     return (mdl_name, categories, command_line_opts, skip)
 
 
-def run_mcell(mcell_bin, mdl_name, command_line_opts):
+def run_mcell(mcell_bin: str, mdl_name: str, command_line_opts: List) -> float:
     seed = random.randint(1, 2147483647)
     command = [mcell_bin, '-seed', '%d' % seed, mdl_name]
     command.extend(command_line_opts)
+    print(os.getcwd())
     print(" ".join(command))
     start = time.time()
     proc = subprocess.Popen(
@@ -59,7 +60,7 @@ def run_mcell(mcell_bin, mdl_name, command_line_opts):
     return elapsed_time
 
 
-def build_nutmeg(proj_dir):
+def build_nutmeg(proj_dir: str) -> None:
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/nutmeg'])
     os.chdir("nutmeg")
     subprocess.call(['git', 'pull'])
@@ -74,15 +75,16 @@ def build_nutmeg(proj_dir):
     os.chdir(proj_dir)
 
 
-def list_nutmeg_categories(proj_dir):
+def list_nutmeg_categories(proj_dir: str) -> None:
     os.chdir("nutmeg")
     command = ["./nutmeg", "-L"]
     subprocess.Popen(command)
     os.chdir(proj_dir)
 
 
-def build_mcell(num_bins, step, branch, proj_dir):
-    bin_dict = collections.OrderedDict()
+def build_mcell(
+        num_bins: int, step: int, branch: str, proj_dir: str) -> OrderedDict:
+    bin_dict = OrderedDict() # type: OrderedDict
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
     os.chdir("mcell")
     subprocess.call(['git', 'pull'])
@@ -111,7 +113,7 @@ def build_mcell(num_bins, step, branch, proj_dir):
     return bin_dict
 
 
-def plot_times(run_info_list, categories):
+def plot_times(run_info_list: List, categories: List) -> None:
     total_run_list = []
     for run in run_info_list:
         commit = run['commit'][:8]
@@ -133,7 +135,7 @@ def plot_times(run_info_list, categories):
     ax.get_figure().savefig("output.png")
 
 
-def clean_builds():
+def clean_builds() -> None:
     os.chdir("mcell")
     build_dir = "build"
     if os.path.exists(build_dir):
@@ -141,14 +143,15 @@ def clean_builds():
     os.chdir("..")
 
 
-def run_nutmeg_tests(bin_dict, selected_categories, proj_dir):
+def run_nutmeg_tests(
+        bin_dict: OrderedDict, selected_categories: List, proj_dir: str):
     os.chdir("nutmeg/tests")
     dirs = os.listdir(os.getcwd())
     dirs.sort()
     run_info_list = []
     for mcell_bin in bin_dict:
-        mdl_times = {}
-        mdl_total_times = {}
+        mdl_times = {} # type: Dict
+        mdl_total_times = {} # type: Dict
         for category in selected_categories:
             mdl_total_times[category] = {}
             mdl_times[category] = {}
@@ -207,7 +210,7 @@ def setup_argparser():
     return parser.parse_args()
 
 
-def get_az_models(mouse_dir, frog_dir):
+def get_az_models(mouse_dir: str, frog_dir: str):
     subprocess.call(
         ['git', 'clone', 'https://github.com/jczech/%s' % mouse_dir])
     os.chdir(mouse_dir)
@@ -221,11 +224,16 @@ def get_az_models(mouse_dir, frog_dir):
     os.chdir("..")
 
 
-def run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir, run_info_list):
+def run_az_tests(
+        mouse_dir: str,
+        frog_dir: str,
+        bin_dict: OrderedDict,
+        proj_dir: str,
+        run_info_list: List):
     cmd_args = ['-q', '-i', '10']
     for idx, mcell_bin in enumerate(bin_dict):
         mdl_times = {}
-        total_time = 0
+        total_time = 0.0
 
         for dirn in [mouse_dir, frog_dir]:
             full_dirn = "%s/mdls" % dirn
