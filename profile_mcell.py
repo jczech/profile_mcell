@@ -42,7 +42,6 @@ def parse_test():
 
 
 def run_mcell(mcell_bin, mdl_name, command_line_opts):
-    print(os.getcwd())
     seed = random.randint(1, 2147483647)
     command = [mcell_bin, '-seed', '%d' % seed, mdl_name]
     command.extend(command_line_opts)
@@ -115,17 +114,17 @@ def build_mcell(num_bins, step, branch, proj_dir):
 def plot_times(run_info_list, categories):
     total_run_list = []
     for run in run_info_list:
-        binary = run['mcell_bin'][:8]
-        curr_run = [binary]
+        commit = run['commit'][:8]
+        curr_run = [commit]
         for key in run['total_time']:
             curr_run.append(run['total_time'][key])
         total_run_list.append(curr_run)
 
-    column_list = ['binary']
+    column_list = ['commit']
     column_list.extend(categories)
     times_df = pandas.DataFrame(data=total_run_list, columns=column_list)
 
-    times_df = times_df.set_index("binary")
+    times_df = times_df.set_index('commit')
     ax = times_df.plot(
         title="Running Times for MCell Binaries", kind="bar",
         rot=0)
@@ -178,7 +177,8 @@ def run_nutmeg_tests(bin_dict, selected_categories, proj_dir):
             else:
                 total_time = sum(total_time_list)
             mdl_total_times[category] = total_time
-        run_info['mcell_bin'] = bin_dict[mcell_bin]
+        run_info['commit'] = bin_dict[mcell_bin]
+        run_info['mcell_bin'] = mcell_bin
         run_info['mdl_times'] = mdl_times
         run_info['total_time'] = mdl_total_times
         run_info_list.append(run_info)
@@ -221,15 +221,27 @@ def get_az_models(mouse_dir, frog_dir):
     os.chdir("..")
 
 
-def run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir):
-    cmd_args = ['-q', '-i', '100']
-    os.chdir("%s/mdls" % mouse_dir)
-    run_mcell("mcell", "main.mdl", cmd_args)
-    os.chdir(proj_dir)
+def run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir, run_info_list):
+    cmd_args = ['-q', '-i', '10']
+    for idx, mcell_bin in enumerate(bin_dict):
+        mdl_times = {}
+        total_time = 0
 
-    os.chdir("%s/mdls" % frog_dir)
-    run_mcell("mcell", "main.mdl", cmd_args)
+        for dirn in [mouse_dir, frog_dir]:
+            full_dirn = "%s/mdls" % dirn
+            mdln = "main.mdl"
+            mdl_dir_fname = "{0}/{1}".format(full_dirn, mdln)
+            os.chdir(full_dirn)
+            elapsed_time = run_mcell(mcell_bin, mdln, cmd_args)
+            os.chdir(proj_dir)
+            mdl_times[mdl_dir_fname] = elapsed_time
+            total_time += elapsed_time
+
+        run_info_list[idx]['mdl_times']['az'] = mdl_times
+        run_info_list[idx]['total_time']['az'] = total_time
+
     os.chdir(proj_dir)
+    return run_info_list
 
 
 def main():
@@ -259,7 +271,7 @@ def main():
             mouse_dir = 'mouse_model_4p_50hz'
             frog_dir = 'frog_model_5p_100hz'
             get_az_models(mouse_dir, frog_dir)
-            run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir)
+            run_info_list = run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir, run_info_list)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
