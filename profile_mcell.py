@@ -223,8 +223,44 @@ def run_nutmeg_tests(
     return run_info_list
 
 
+def get_lv_model(lv_dir: str) -> None:
+    """ Clone the Lotka-Volterra model. """
+    subprocess.call(
+        ['git', 'clone', 'https://github.com/jczech/%s' % lv_dir])
+    os.chdir(lv_dir)
+    subprocess.call(['git', 'pull'])
+    os.chdir("..")
+
+
+def run_lv_test(
+        lv_dir: str,
+        bin_list: List[Tuple[str, str, str]],
+        proj_dir: str,
+        run_info_list: List[Dict[str, Any]]) -> None:
+    """ Run MCell on the Lotka-Volterra test using every selected MCell binary.
+    """
+    cmd_args = ['-q']
+    for idx, mcell_bin in enumerate(bin_list):
+        mdl_times = {}
+        total_time = 0.0
+
+        full_dirn = "%s/mdls" % lv_dir
+        mdln = "Scene.main.mdl"
+        mdl_dir_fname = "{0}/{1}".format(full_dirn, mdln)
+        os.chdir(full_dirn)
+        elapsed_time = run_mcell(mcell_bin[0], mdln, cmd_args)
+        os.chdir(proj_dir)
+        mdl_times[mdl_dir_fname] = elapsed_time
+        total_time += elapsed_time
+
+        run_info_list[idx]['mdl_times']['lv'] = mdl_times
+        run_info_list[idx]['total_time']['lv'] = total_time
+
+    os.chdir(proj_dir)
+
+
 def get_rat_nmj_models(rat_nmj_dir: str) -> None:
-    """ Clone all the active zone models. """
+    """ Clone the rat nmj model. """
     subprocess.call(
         ['git', 'clone', 'https://github.com/jczech/%s' % rat_nmj_dir])
     os.chdir(rat_nmj_dir)
@@ -237,7 +273,7 @@ def run_rat_nmj_tests(
         bin_list: List[Tuple[str, str, str]],
         proj_dir: str,
         run_info_list: List[Dict[str, Any]]) -> None:
-    """ Run MCell on all the active zone tests using every select MCell binary.
+    """ Run MCell on the rat nmj model using every selected MCell binary.
     """
     cmd_args = ['-q', '-i', '2000']
     for idx, mcell_bin in enumerate(bin_list):
@@ -363,6 +399,10 @@ def main():
             rat_nmj_dir = 'rat_nmj'
             get_rat_nmj_models(rat_nmj_dir)
             run_rat_nmj_tests(rat_nmj_dir, bin_list, proj_dir, run_info_list)
+        if 'lv' in categories:
+            lv_dir = 'lv_rxn_limited'
+            get_lv_model(lv_dir)
+            run_lv_test(lv_dir, bin_list, proj_dir, run_info_list)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
