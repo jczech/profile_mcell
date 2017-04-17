@@ -8,7 +8,6 @@ import yaml
 import argparse
 import shutil
 import pandas
-from collections import OrderedDict
 from typing import List, Dict, Tuple, Any
 
 def get_mcell_vers(mcell_bin):
@@ -44,7 +43,10 @@ def parse_test() -> Tuple[str, List[str], List[str], bool]:
     return (mdl_name, categories, command_line_opts, skip)
 
 
-def run_mcell(mcell_bin: str, mdl_name: str, command_line_opts: List[str]) -> float:
+def run_mcell(
+        mcell_bin: str,
+        mdl_name: str,
+        command_line_opts: List[str]) -> float:
     """ Run MCell and return the time it takes to complete.
     This runs the selected MCell binary on a single model.
     """
@@ -99,7 +101,7 @@ def build_mcell(
         num_bins: int,
         step: int,
         branches: List[str],
-        proj_dir: str) -> OrderedDict:
+        proj_dir: str) -> List[Tuple[str, str, str]]:
     """ Clone and build all the requested versions of MCell. """
     bin_list = []
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
@@ -167,7 +169,7 @@ def clean_builds() -> None:
 
 
 def run_nutmeg_tests(
-        bin_list: OrderedDict,
+        bin_list: List[Tuple[str, str, str]],
         selected_categories: List[str],
         proj_dir: str) -> List[Dict[str, Any]]:
     """ Run all the requested nutmeg tests (according to category).
@@ -185,7 +187,7 @@ def run_nutmeg_tests(
         for category in selected_categories:
             mdl_total_times[category] = {}
             mdl_times[category] = {}
-        run_info = {}
+        run_info = {} # type: Dict[str, Any]
         for dirn in dirs:
             if not os.path.isdir(dirn):
                 continue
@@ -238,7 +240,7 @@ def get_az_models(mouse_dir: str, frog_dir: str) -> None:
 def run_az_tests(
         mouse_dir: str,
         frog_dir: str,
-        bin_list: OrderedDict,
+        bin_list: List[Tuple[str, str, str]],
         proj_dir: str,
         run_info_list: List[Dict[str, Any]]) -> None:
     """ Run MCell on all the active zone tests using every select MCell binary.
@@ -297,7 +299,6 @@ def main():
     # expect, so we have to do this.
     if not branch:
         branch = ["master"]
-
     if not categories:
         categories = ["az"]
 
