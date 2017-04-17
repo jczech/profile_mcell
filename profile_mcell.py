@@ -288,6 +288,14 @@ def main():
     branch = args.branch
     proj_dir = os.getcwd()
 
+    # using a default value with the append action doesn't work like you'd
+    # expect, so we have to do this.
+    if not branch:
+        branch = ["master"]
+
+    if not categories:
+        categories = ["az"]
+
     if args.clean:
         clean_builds()
 
