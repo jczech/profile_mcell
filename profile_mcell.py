@@ -98,10 +98,10 @@ def list_nutmeg_categories(proj_dir: str) -> None:
 def build_mcell(
         num_bins: int,
         step: int,
-        branch: List[str],
+        branches: List[str],
         proj_dir: str) -> OrderedDict:
     """ Clone and build all the requested versions of MCell. """
-    bin_dict = OrderedDict() # type: OrderedDict
+    bin_list = []
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/mcell'])
     os.chdir("mcell")
     subprocess.call(['git', 'pull'])
@@ -109,8 +109,8 @@ def build_mcell(
     if not os.path.exists(build_dir):
         os.mkdir(build_dir)
     os.chdir(build_dir)
-    for b in branch:
-        subprocess.call(['git', 'checkout', b])
+    for branch in branches:
+        subprocess.call(['git', 'checkout', branch])
         for i in range(num_bins):
             # Only build if we need to. Use existing versions if it exists.
             proc = subprocess.Popen(
@@ -123,12 +123,13 @@ def build_mcell(
                 subprocess.call(["make"])
                 shutil.copy("mcell", new_mcell_name)
             mcell_bin = os.path.join(os.getcwd(), new_mcell_name)
-            bin_dict[mcell_bin] = git_hash[:-1]
+            commit = git_hash[:-1]
+            bin_list.append((mcell_bin, commit, branch))
             subprocess.call(["git", "checkout", "HEAD~%d" % step])
-        subprocess.call(['git', 'checkout', b])
+        subprocess.call(['git', 'checkout', branch])
     os.chdir(proj_dir)
 
-    return bin_dict
+    return bin_list
 
 
 def plot_times(
@@ -137,7 +138,7 @@ def plot_times(
     """ Plot the times required to run the all the simulations. """
     total_run_list = []
     for run in run_info_list:
-        commit = run['commit'][:8]
+        commit = "%s\n%s" % (run['commit'][:8], run['branch'])
         curr_run = [commit]
         for key in categories:
             curr_run.append(run['total_time'][key])
@@ -166,7 +167,7 @@ def clean_builds() -> None:
 
 
 def run_nutmeg_tests(
-        bin_dict: OrderedDict,
+        bin_list: OrderedDict,
         selected_categories: List[str],
         proj_dir: str) -> List[Dict[str, Any]]:
     """ Run all the requested nutmeg tests (according to category).
@@ -175,7 +176,10 @@ def run_nutmeg_tests(
     dirs = os.listdir(os.getcwd())
     dirs.sort()
     run_info_list = []
-    for mcell_bin in bin_dict:
+    for mcell_bin in bin_list:
+        mcell_bin_path = mcell_bin[0]
+        commit = mcell_bin[1]
+        branch = mcell_bin[2]
         mdl_times = {} # type: Dict
         mdl_total_times = {} # type: Dict
         for category in selected_categories:
@@ -194,20 +198,21 @@ def run_nutmeg_tests(
             for category in selected_categories:
                 if category in categories:
                     elapsed_time = run_mcell(
-                        mcell_bin, mdl_name, command_line_opts)
+                        mcell_bin_path, mdl_name, command_line_opts)
                     mdl_times[category][mdl_dir_fname] = elapsed_time
             os.chdir("..")
         for category in selected_categories:
             total_time_list = [
                 mdl_times[category][k] for k in mdl_times[category]]
             if None in total_time_list:
-                print("Commit %s has failures." % bin_dict[mcell_bin])
+                print("Commit %s has failures." % mcell_bin_path)
                 break
             else:
                 total_time = sum(total_time_list)
             mdl_total_times[category] = total_time
-        run_info['commit'] = bin_dict[mcell_bin]
-        run_info['mcell_bin'] = mcell_bin
+        run_info['commit'] = commit 
+        run_info['mcell_bin'] = mcell_bin_path
+        run_info['branch'] = branch
         run_info['mdl_times'] = mdl_times
         run_info['total_time'] = mdl_total_times
         run_info_list.append(run_info)
@@ -233,13 +238,13 @@ def get_az_models(mouse_dir: str, frog_dir: str) -> None:
 def run_az_tests(
         mouse_dir: str,
         frog_dir: str,
-        bin_dict: OrderedDict,
+        bin_list: OrderedDict,
         proj_dir: str,
         run_info_list: List[Dict[str, Any]]) -> None:
     """ Run MCell on all the active zone tests using every select MCell binary.
     """
     cmd_args = ['-q', '-i', '10']
-    for idx, mcell_bin in enumerate(bin_dict):
+    for idx, mcell_bin in enumerate(bin_list):
         mdl_times = {}
         total_time = 0.0
 
@@ -248,7 +253,7 @@ def run_az_tests(
             mdln = "main.mdl"
             mdl_dir_fname = "{0}/{1}".format(full_dirn, mdln)
             os.chdir(full_dirn)
-            elapsed_time = run_mcell(mcell_bin, mdln, cmd_args)
+            elapsed_time = run_mcell(mcell_bin[0], mdln, cmd_args)
             os.chdir(proj_dir)
             mdl_times[mdl_dir_fname] = elapsed_time
             total_time += elapsed_time
@@ -307,15 +312,15 @@ def main():
     else:
         # This is how many versions of MCell we want to test (starting with
         # HEAD and going back)
-        bin_dict = build_mcell(num_bins, step, branch, proj_dir)
+        bin_list = build_mcell(num_bins, step, branch, proj_dir)
 
         nutmeg_cats = [cat for cat in categories if cat != "az"]
-        run_info_list = run_nutmeg_tests(bin_dict, categories, proj_dir)
+        run_info_list = run_nutmeg_tests(bin_list, categories, proj_dir)
         if 'az' in categories:
             mouse_dir = 'mouse_model_4p_50hz'
             frog_dir = 'frog_model_5p_100hz'
             get_az_models(mouse_dir, frog_dir)
-            run_az_tests(mouse_dir, frog_dir, bin_dict, proj_dir, run_info_list)
+            run_az_tests(mouse_dir, frog_dir, bin_list, proj_dir, run_info_list)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
