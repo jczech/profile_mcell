@@ -211,27 +211,6 @@ def run_nutmeg_tests(
     return run_info_list
 
 
-def setup_argparser():
-    parser = argparse.ArgumentParser(
-        description="How to profile MCell using nutmeg tests:")
-    parser.add_argument(
-        "-n", "--num", default=1,
-        help="number of versions of MCell to run from git repo")
-    parser.add_argument(
-        "-s", "--step",  default=1,
-        help="number of steps between MCell versions")
-    parser.add_argument(
-        "-c", "--categories", action="append", help="categories for tests")
-    parser.add_argument(
-        "-b", "--branch", help="git branch", default="master")
-    parser.add_argument(
-        "-C", "--clean", action="store_true", help="clean old MCell builds")
-    parser.add_argument(
-        "-l", "--list_categories", action="store_true",
-        help="list nutmeg categories")
-    return parser.parse_args()
-
-
 def get_az_models(mouse_dir: str, frog_dir: str) -> None:
     """ Clone all the active zone models. """
     subprocess.call(
@@ -274,6 +253,27 @@ def run_az_tests(
         run_info_list[idx]['total_time']['az'] = total_time
 
     os.chdir(proj_dir)
+
+
+def setup_argparser():
+    parser = argparse.ArgumentParser(
+        description="How to profile MCell using nutmeg tests:")
+    parser.add_argument(
+        "-n", "--num", default=1,
+        help="number of versions of MCell to run from git repo")
+    parser.add_argument(
+        "-s", "--step",  default=1,
+        help="number of steps between MCell versions")
+    parser.add_argument(
+        "-c", "--categories", action="append", help="categories for tests")
+    parser.add_argument(
+        "-b", "--branch", help="git branch", default="master")
+    parser.add_argument(
+        "-C", "--clean", action="store_true", help="clean old MCell builds")
+    parser.add_argument(
+        "-l", "--list_categories", action="store_true",
+        help="list nutmeg categories")
+    return parser.parse_args()
 
 
 def main():
