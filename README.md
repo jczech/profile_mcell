@@ -1,4 +1,24 @@
 # profile_mcell
+
+Requirements
+--------------------------------------------------------------------
+You need the following Python libraries:
+
+  * pyyaml
+  * pandas
+  * matplotlib
+
+You also need the following packages (to build MCell):
+
+  * cmake
+  * bison
+  * flex
+  * build-essential
+  * clang
+
+Overview
+--------------------------------------------------------------------
+
 A tool to profile MCell's performance between selected commits
 
 Currently, this will only work in Linux (and probably OSX). The testing is
