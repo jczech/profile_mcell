@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import subprocess
 import random
@@ -71,7 +71,10 @@ def build_nutmeg(proj_dir: str) -> None:
     subprocess.call(['git', 'clone', 'https://github.com/mcellteam/nutmeg'])
     os.chdir("nutmeg")
     subprocess.call(['git', 'pull'])
-    subprocess.call(['go', 'build'])
+    try:
+        subprocess.call(['go', 'build'])
+    except:
+        print("golang not found")
     if not os.path.exists("nutmeg.conf"):
         with open("nutmeg.conf", 'w') as nutmeg_f:
             mcell_path = shutil.which("mcell")
