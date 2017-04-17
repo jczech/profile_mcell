@@ -223,13 +223,13 @@ def run_nutmeg_tests(
     return run_info_list
 
 
-def get_lv_model(lv_dir: str) -> None:
-    """ Clone the Lotka-Volterra model. """
-    subprocess.call(
-        ['git', 'clone', 'https://github.com/jczech/%s' % lv_dir])
-    os.chdir(lv_dir)
-    subprocess.call(['git', 'pull'])
-    os.chdir("..")
+def get_model(model_dir: str) -> None:
+     """ Clone the MCell model. """
+     subprocess.call(
+         ['git', 'clone', 'https://github.com/jczech/%s' % model_dir])
+     os.chdir(model_dir)
+     subprocess.call(['git', 'pull'])
+     os.chdir("..")
 
 
 def run_lv_test(
@@ -259,15 +259,6 @@ def run_lv_test(
     os.chdir(proj_dir)
 
 
-def get_rat_nmj_models(rat_nmj_dir: str) -> None:
-    """ Clone the rat nmj model. """
-    subprocess.call(
-        ['git', 'clone', 'https://github.com/jczech/%s' % rat_nmj_dir])
-    os.chdir(rat_nmj_dir)
-    subprocess.call(['git', 'pull'])
-    os.chdir("..")
-
-
 def run_rat_nmj_tests(
         rat_nmj_dir: str,
         bin_list: List[Tuple[str, str, str]],
@@ -293,21 +284,6 @@ def run_rat_nmj_tests(
         run_info_list[idx]['total_time']['rat_nmj'] = total_time
 
     os.chdir(proj_dir)
-
-
-def get_az_models(mouse_dir: str, frog_dir: str) -> None:
-    """ Clone all the active zone models. """
-    subprocess.call(
-        ['git', 'clone', 'https://github.com/jczech/%s' % mouse_dir])
-    os.chdir(mouse_dir)
-    subprocess.call(['git', 'pull'])
-    os.chdir("..")
-
-    subprocess.call(
-        ['git', 'clone', 'https://github.com/jczech/%s' % frog_dir])
-    os.chdir(frog_dir)
-    subprocess.call(['git', 'pull'])
-    os.chdir("..")
 
 
 def run_az_tests(
@@ -393,15 +369,16 @@ def main():
         if 'az' in categories:
             mouse_dir = 'mouse_model_4p_50hz'
             frog_dir = 'frog_model_5p_100hz'
-            get_az_models(mouse_dir, frog_dir)
+            get_model(mouse_dir)
+            get_model(frog_dir)
             run_az_tests(mouse_dir, frog_dir, bin_list, proj_dir, run_info_list)
         if 'rat_nmj' in categories:
             rat_nmj_dir = 'rat_nmj'
-            get_rat_nmj_models(rat_nmj_dir)
+            get_model(rat_nmj_dir)
             run_rat_nmj_tests(rat_nmj_dir, bin_list, proj_dir, run_info_list)
         if 'lv' in categories:
             lv_dir = 'lv_rxn_limited'
-            get_lv_model(lv_dir)
+            get_model(lv_dir)
             run_lv_test(lv_dir, bin_list, proj_dir, run_info_list)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
