@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import subprocess
-import random
 import time
 import os
 import yaml
@@ -9,6 +8,7 @@ import argparse
 import shutil
 import pandas
 from typing import List, Dict, Tuple, Any
+
 
 def get_mcell_vers(mcell_bin):
     proc = subprocess.Popen([mcell_bin], stdout=subprocess.PIPE)
@@ -24,8 +24,8 @@ def parse_test() -> Tuple[str, List[str], List[str], bool]:
     Grab the MDL file names, categories, and command line options.
     """
     mdl_name = ""
-    categories = [] # type: List
-    command_line_opts = [] # type: List
+    categories = []  # type: List
+    command_line_opts = []  # type: List
     skip = True
     with open("./test_description.toml", 'r') as toml_f:
         for line in toml_f.readlines():
@@ -50,7 +50,6 @@ def run_mcell(
     """ Run MCell and return the time it takes to complete.
     This runs the selected MCell binary on a single model.
     """
-    # seed = random.randint(1, 2147483647)
     seed = 1
     command = [mcell_bin, '-seed', '%d' % seed, mdl_name]
     command.extend(command_line_opts)
@@ -186,12 +185,12 @@ def run_nutmeg_tests(
         mcell_bin_path = mcell_bin[0]
         commit = mcell_bin[1]
         branch = mcell_bin[2]
-        mdl_times = {} # type: Dict
-        mdl_total_times = {} # type: Dict
+        mdl_times = {}  # type: Dict
+        mdl_total_times = {}  # type: Dict
         for category in selected_categories:
             mdl_total_times[category] = {}
             mdl_times[category] = {}
-        run_info = {} # type: Dict[str, Any]
+        run_info = {}  # type: Dict[str, Any]
         for dirn in dirs:
             if not os.path.isdir(dirn):
                 continue
@@ -216,7 +215,7 @@ def run_nutmeg_tests(
             else:
                 total_time = sum(total_time_list)
             mdl_total_times[category] = total_time
-        run_info['commit'] = commit 
+        run_info['commit'] = commit
         run_info['mcell_bin'] = mcell_bin_path
         run_info['branch'] = branch
         run_info['mdl_times'] = mdl_times
@@ -227,18 +226,18 @@ def run_nutmeg_tests(
 
 
 def get_model(model_dir: str) -> None:
-     """ Clone the MCell model. """
-     subprocess.call(
-         ['git', 'clone', 'https://github.com/jczech/%s' % model_dir])
-     os.chdir(model_dir)
-     subprocess.call(['git', 'pull'])
-     os.chdir("..")
+    """ Clone the MCell model. """
+    subprocess.call(
+        ['git', 'clone', 'https://github.com/jczech/%s' % model_dir])
+    os.chdir(model_dir)
+    subprocess.call(['git', 'pull'])
+    os.chdir("..")
 
 
 def run_test(
         cat: str,
         dirn: str,
-        mdln: str,  
+        mdln: str,
         cmd_args: List[str],
         bin_list: List[Tuple[str, str, str]],
         proj_dir: str,
@@ -258,7 +257,7 @@ def run_test(
 
         if cat in run_info_list[idx]['mdl_times']:
             run_info_list[idx]['mdl_times'][cat][mdl_dir_fname] = elapsed_time
-            run_info_list[idx]['total_time'][cat]+=total_time
+            run_info_list[idx]['total_time'][cat] += total_time
         else:
             run_info_list[idx]['mdl_times'][cat] = mdl_times
             run_info_list[idx]['total_time'][cat] = total_time
@@ -323,7 +322,6 @@ def main():
         # HEAD and going back)
         bin_list = build_mcell(num_bins, step, branch, proj_dir)
 
-        nutmeg_cats = [cat for cat in categories if cat != "az"]
         run_info_list = run_nutmeg_tests(bin_list, categories, proj_dir)
         if az_cat in categories:
             mouse_dir = 'mouse_model_4p_50hz'
@@ -331,17 +329,25 @@ def main():
             get_model(mouse_dir)
             get_model(frog_dir)
             cmd_args = ['-q', '-i', '100']
-            run_test(az_cat, mouse_dir, "main.mdl", cmd_args, bin_list, proj_dir, run_info_list)
-            run_test(az_cat, frog_dir, "main.mdl", cmd_args, bin_list, proj_dir, run_info_list)
+            run_test(
+                az_cat, mouse_dir, "main.mdl", cmd_args, bin_list, proj_dir,
+                run_info_list)
+            run_test(
+                az_cat, frog_dir, "main.mdl", cmd_args, bin_list, proj_dir,
+                run_info_list)
         if rat_nmj_cat in categories:
             rat_nmj_dir = rat_nmj_cat
             get_model(rat_nmj_dir)
             cmd_args = ['-q', '-i', '2000']
-            run_test(rat_nmj_cat, rat_nmj_dir, "Scene.main.mdl", cmd_args, bin_list, proj_dir, run_info_list)
+            run_test(
+                rat_nmj_cat, rat_nmj_dir, "Scene.main.mdl", cmd_args,
+                bin_list, proj_dir, run_info_list)
         if lv_cat in categories:
             lv_dir = 'lv_rxn_limited'
             get_model(lv_dir)
-            run_test(lv_cat, lv_dir, "Scene.main.mdl", ["-q"], bin_list, proj_dir, run_info_list)
+            run_test(
+                lv_cat, lv_dir, "Scene.main.mdl", ["-q"], bin_list, proj_dir,
+                run_info_list)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
