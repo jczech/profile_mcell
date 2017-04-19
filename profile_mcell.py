@@ -308,9 +308,8 @@ def main():
         'az': [{
             'dirn': 'mouse_model_4p_50hz',
             'mdln': 'main.mdl',
-            'cmd_args': ['-q', '-i', '100'],
-        },
-        {
+            'cmd_args': ['-q', '-i', '100']},
+            {
             'dirn': 'frog_model_5p_100hz',
             'mdln': 'main.mdl',
             'cmd_args': ['-q', '-i', '100'],
@@ -348,7 +347,9 @@ def main():
                     mdln = test['mdln']
                     get_model(dirn)
                     cmd_args = test['cmd_args']
-                    run_test(cat, dirn, mdln, cmd_args, bin_list, proj_dir, run_info_list)
+                    run_test(
+                        cat, dirn, mdln, cmd_args, bin_list, proj_dir,
+                        run_info_list)
 
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
