@@ -232,20 +232,19 @@ def get_model(model_dir: str) -> None:
      os.chdir("..")
 
 
-def run_lv_test(
-        lv_dir: str,
+def run_test(
+        dirn: str,
+        mdln: str,  
+        cmd_args: List[str],
         bin_list: List[Tuple[str, str, str]],
         proj_dir: str,
         run_info_list: List[Dict[str, Any]]) -> None:
-    """ Run MCell on the Lotka-Volterra test using every selected MCell binary.
-    """
-    cmd_args = ['-q']
+    """ Run MCell on the selected test using every selected MCell binary. """
     for idx, mcell_bin in enumerate(bin_list):
         mdl_times = {}
         total_time = 0.0
 
-        full_dirn = "%s/mdls" % lv_dir
-        mdln = "Scene.main.mdl"
+        full_dirn = "%s/mdls" % dirn
         mdl_dir_fname = "{0}/{1}".format(full_dirn, mdln)
         os.chdir(full_dirn)
         elapsed_time = run_mcell(mcell_bin[0], mdln, cmd_args)
@@ -253,35 +252,8 @@ def run_lv_test(
         mdl_times[mdl_dir_fname] = elapsed_time
         total_time += elapsed_time
 
-        run_info_list[idx]['mdl_times']['lv'] = mdl_times
-        run_info_list[idx]['total_time']['lv'] = total_time
-
-    os.chdir(proj_dir)
-
-
-def run_rat_nmj_tests(
-        rat_nmj_dir: str,
-        bin_list: List[Tuple[str, str, str]],
-        proj_dir: str,
-        run_info_list: List[Dict[str, Any]]) -> None:
-    """ Run MCell on the rat nmj model using every selected MCell binary.
-    """
-    cmd_args = ['-q', '-i', '2000']
-    for idx, mcell_bin in enumerate(bin_list):
-        mdl_times = {}
-        total_time = 0.0
-
-        full_dirn = "%s/mdls" % rat_nmj_dir
-        mdln = "Scene.main.mdl"
-        mdl_dir_fname = "{0}/{1}".format(full_dirn, mdln)
-        os.chdir(full_dirn)
-        elapsed_time = run_mcell(mcell_bin[0], mdln, cmd_args)
-        os.chdir(proj_dir)
-        mdl_times[mdl_dir_fname] = elapsed_time
-        total_time += elapsed_time
-
-        run_info_list[idx]['mdl_times']['rat_nmj'] = mdl_times
-        run_info_list[idx]['total_time']['rat_nmj'] = total_time
+        run_info_list[idx]['mdl_times'][dirn] = mdl_times
+        run_info_list[idx]['total_time'][dirn] = total_time
 
     os.chdir(proj_dir)
 
@@ -375,11 +347,12 @@ def main():
         if 'rat_nmj' in categories:
             rat_nmj_dir = 'rat_nmj'
             get_model(rat_nmj_dir)
-            run_rat_nmj_tests(rat_nmj_dir, bin_list, proj_dir, run_info_list)
-        if 'lv' in categories:
+            cmd_args = ['-q', '-i', '2000']
+            run_test(rat_nmj_dir, "Scene.main.mdl", cmd_args, bin_list, proj_dir, run_info_list)
+        if 'lv_rxn_limited' in categories:
             lv_dir = 'lv_rxn_limited'
             get_model(lv_dir)
-            run_lv_test(lv_dir, bin_list, proj_dir, run_info_list)
+            run_test(lv_dir, "Scene.main.mdl", ["-q"], bin_list, proj_dir, run_info_list)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
