@@ -94,7 +94,10 @@ def list_nutmeg_categories(proj_dir: str) -> None:
     """
     os.chdir("nutmeg")
     command = ["./nutmeg", "-L"]
-    subprocess.Popen(command)
+    try:
+        subprocess.Popen(command)
+    except FileNotFoundError:
+        print("Can't find nutmeg binary")
     os.chdir(proj_dir)
 
 
@@ -302,11 +305,19 @@ def main():
     if args.clean:
         clean_builds()
 
+    az_cat = 'az'
+    rat_nmj_cat = 'rat_nmj'
+    lv_cat = 'lv'
+    other_cats = [az_cat, rat_nmj_cat, lv_cat]
     os.chdir(proj_dir)
+
     build_nutmeg(proj_dir)
     if args.list_categories:
         os.chdir(proj_dir)
         list_nutmeg_categories(proj_dir)
+        print("Other categories:")
+        for cat in other_cats:
+            print(" - {0}".format(cat))
     else:
         # This is how many versions of MCell we want to test (starting with
         # HEAD and going back)
@@ -314,10 +325,7 @@ def main():
 
         nutmeg_cats = [cat for cat in categories if cat != "az"]
         run_info_list = run_nutmeg_tests(bin_list, categories, proj_dir)
-        az_cat = 'az'
-        rat_nmj_cat = 'rat_nmj'
-        lv_cat = 'lv'
-        if 'az' in categories:
+        if az_cat in categories:
             mouse_dir = 'mouse_model_4p_50hz'
             frog_dir = 'frog_model_5p_100hz'
             get_model(mouse_dir)
