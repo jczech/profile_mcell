@@ -138,10 +138,12 @@ def build_mcell(
 
 
 def plot_times(
-        run_info_list: List[Dict[str, Any]],
-        categories: List[str]) -> None:
+        run_info_list: List[Dict[str, Any]]) -> None:
+        # categories: List[str]) -> None:
     """ Plot the times required to run the all the simulations. """
     total_run_list = []
+    categories = list(run_info_list[0]['total_time'].keys())
+    categories.sort()
     for run in run_info_list:
         commit = "%s\n%s" % (run['commit'][:8], run['branch'])
         curr_run = [commit]
@@ -283,6 +285,9 @@ def setup_argparser():
     parser.add_argument(
         "-l", "--list_categories", action="store_true",
         help="list nutmeg categories")
+    parser.add_argument(
+        "-p", "--plot_yml", action="store_true",
+        help="plot existing yml file")
     return parser.parse_args()
 
 
@@ -334,6 +339,11 @@ def main():
         print("Other categories:")
         for cat in other_cats:
             print(" - {0}".format(cat))
+    elif args.plot_yml:
+        with open("mdl_times.yml", 'r') as mdl_times_f:
+            run_info_list = yaml.load(mdl_times_f)
+            from pprint import pprint
+            pprint(run_info_list)
     else:
         # This is how many versions of MCell we want to test (starting with
         # HEAD and going back)
@@ -355,7 +365,7 @@ def main():
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
             mdl_times_f.write(yml_dump)
-        plot_times(run_info_list, categories)
+    plot_times(run_info_list)
 
 
 if __name__ == "__main__":
