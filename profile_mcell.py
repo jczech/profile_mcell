@@ -304,10 +304,28 @@ def main():
     if args.clean:
         clean_builds()
 
-    az_cat = 'az'
-    rat_nmj_cat = 'rat_nmj'
-    lv_cat = 'lv'
-    other_cats = [az_cat, rat_nmj_cat, lv_cat]
+    other_cats = {
+        'az': [{
+            'dirn': 'mouse_model_4p_50hz',
+            'mdln': 'main.mdl',
+            'cmd_args': ['-q', '-i', '100'],
+        },
+        {
+            'dirn': 'frog_model_5p_100hz',
+            'mdln': 'main.mdl',
+            'cmd_args': ['-q', '-i', '100'],
+        }],
+        'rat_nmj': [{
+            'dirn': 'rat_nmj',
+            'mdln': 'Scene.main.mdl',
+            'cmd_args': ['-q', '-i', '2000'],
+        }],
+        'lv': [{
+            'dirn': 'lv_rxn_limited',
+            'mdln': 'Scene.main.mdl',
+            'cmd_args': ['-q']
+        }]
+    }
     os.chdir(proj_dir)
 
     build_nutmeg(proj_dir)
@@ -323,31 +341,15 @@ def main():
         bin_list = build_mcell(num_bins, step, branch, proj_dir)
 
         run_info_list = run_nutmeg_tests(bin_list, categories, proj_dir)
-        if az_cat in categories:
-            mouse_dir = 'mouse_model_4p_50hz'
-            frog_dir = 'frog_model_5p_100hz'
-            get_model(mouse_dir)
-            get_model(frog_dir)
-            cmd_args = ['-q', '-i', '100']
-            run_test(
-                az_cat, mouse_dir, "main.mdl", cmd_args, bin_list, proj_dir,
-                run_info_list)
-            run_test(
-                az_cat, frog_dir, "main.mdl", cmd_args, bin_list, proj_dir,
-                run_info_list)
-        if rat_nmj_cat in categories:
-            rat_nmj_dir = rat_nmj_cat
-            get_model(rat_nmj_dir)
-            cmd_args = ['-q', '-i', '2000']
-            run_test(
-                rat_nmj_cat, rat_nmj_dir, "Scene.main.mdl", cmd_args,
-                bin_list, proj_dir, run_info_list)
-        if lv_cat in categories:
-            lv_dir = 'lv_rxn_limited'
-            get_model(lv_dir)
-            run_test(
-                lv_cat, lv_dir, "Scene.main.mdl", ["-q"], bin_list, proj_dir,
-                run_info_list)
+        for cat in other_cats:
+            if cat in categories:
+                for test in other_cats[cat]:
+                    dirn = test['dirn']
+                    mdln = test['mdln']
+                    get_model(dirn)
+                    cmd_args = test['cmd_args']
+                    run_test(cat, dirn, mdln, cmd_args, bin_list, proj_dir, run_info_list)
+
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
