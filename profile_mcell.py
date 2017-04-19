@@ -233,6 +233,7 @@ def get_model(model_dir: str) -> None:
 
 
 def run_test(
+        cat: str,
         dirn: str,
         mdln: str,  
         cmd_args: List[str],
@@ -252,37 +253,12 @@ def run_test(
         mdl_times[mdl_dir_fname] = elapsed_time
         total_time += elapsed_time
 
-        run_info_list[idx]['mdl_times'][dirn] = mdl_times
-        run_info_list[idx]['total_time'][dirn] = total_time
-
-    os.chdir(proj_dir)
-
-
-def run_az_tests(
-        mouse_dir: str,
-        frog_dir: str,
-        bin_list: List[Tuple[str, str, str]],
-        proj_dir: str,
-        run_info_list: List[Dict[str, Any]]) -> None:
-    """ Run MCell on all the active zone tests using every select MCell binary.
-    """
-    cmd_args = ['-q', '-i', '100']
-    for idx, mcell_bin in enumerate(bin_list):
-        mdl_times = {}
-        total_time = 0.0
-
-        for dirn in [mouse_dir, frog_dir]:
-            full_dirn = "%s/mdls" % dirn
-            mdln = "main.mdl"
-            mdl_dir_fname = "{0}/{1}".format(full_dirn, mdln)
-            os.chdir(full_dirn)
-            elapsed_time = run_mcell(mcell_bin[0], mdln, cmd_args)
-            os.chdir(proj_dir)
-            mdl_times[mdl_dir_fname] = elapsed_time
-            total_time += elapsed_time
-
-        run_info_list[idx]['mdl_times']['az'] = mdl_times
-        run_info_list[idx]['total_time']['az'] = total_time
+        if cat in run_info_list[idx]['mdl_times']:
+            run_info_list[idx]['mdl_times'][cat][mdl_dir_fname] = elapsed_time
+            run_info_list[idx]['total_time'][cat]+=total_time
+        else:
+            run_info_list[idx]['mdl_times'][cat] = mdl_times
+            run_info_list[idx]['total_time'][cat] = total_time
 
     os.chdir(proj_dir)
 
@@ -338,21 +314,26 @@ def main():
 
         nutmeg_cats = [cat for cat in categories if cat != "az"]
         run_info_list = run_nutmeg_tests(bin_list, categories, proj_dir)
+        az_cat = 'az'
+        rat_nmj_cat = 'rat_nmj'
+        lv_cat = 'lv'
         if 'az' in categories:
             mouse_dir = 'mouse_model_4p_50hz'
             frog_dir = 'frog_model_5p_100hz'
             get_model(mouse_dir)
             get_model(frog_dir)
-            run_az_tests(mouse_dir, frog_dir, bin_list, proj_dir, run_info_list)
-        if 'rat_nmj' in categories:
-            rat_nmj_dir = 'rat_nmj'
+            cmd_args = ['-q', '-i', '100']
+            run_test(az_cat, mouse_dir, "main.mdl", cmd_args, bin_list, proj_dir, run_info_list)
+            run_test(az_cat, frog_dir, "main.mdl", cmd_args, bin_list, proj_dir, run_info_list)
+        if rat_nmj_cat in categories:
+            rat_nmj_dir = rat_nmj_cat
             get_model(rat_nmj_dir)
             cmd_args = ['-q', '-i', '2000']
-            run_test(rat_nmj_dir, "Scene.main.mdl", cmd_args, bin_list, proj_dir, run_info_list)
-        if 'lv_rxn_limited' in categories:
+            run_test(rat_nmj_cat, rat_nmj_dir, "Scene.main.mdl", cmd_args, bin_list, proj_dir, run_info_list)
+        if lv_cat in categories:
             lv_dir = 'lv_rxn_limited'
             get_model(lv_dir)
-            run_test(lv_dir, "Scene.main.mdl", ["-q"], bin_list, proj_dir, run_info_list)
+            run_test(lv_cat, lv_dir, "Scene.main.mdl", ["-q"], bin_list, proj_dir, run_info_list)
         with open("mdl_times.yml", 'w') as mdl_times_f:
             yml_dump = yaml.dump(
                 run_info_list, allow_unicode=True, default_flow_style=False)
