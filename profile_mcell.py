@@ -7,6 +7,7 @@ import yaml
 import argparse
 import shutil
 import pandas
+import sys
 from typing import List, Dict, Tuple, Any
 
 
@@ -288,6 +289,9 @@ def setup_argparser():
     parser.add_argument(
         "-p", "--plot_yml", action="store_true",
         help="plot existing yml file")
+    parser.add_argument(
+        "-r", "--commit_range", action="append",
+        help="test a range of commits")
     return parser.parse_args()
 
 
@@ -339,6 +343,7 @@ def main():
         print("Other categories:")
         for cat in other_cats:
             print(" - {0}".format(cat))
+        sys.exit()
     elif args.plot_yml:
         with open("mdl_times.yml", 'r') as mdl_times_f:
             run_info_list = yaml.load(mdl_times_f)
